@@ -1,0 +1,4 @@
+Database:
+  address: "http://localhost:9200"
+Server:
+  HTTPPort: 8080
