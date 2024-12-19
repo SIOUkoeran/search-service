@@ -4,6 +4,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gin-gonic/gin"
 	v1 "recommendation/api/v1"
+	"recommendation/infrastructure"
 	"recommendation/repository"
 	"recommendation/service"
 	"recommendation/setting"
@@ -27,8 +28,9 @@ func SetRouters(r *gin.Engine, cfg *setting.Configuration, client *elasticsearch
 
 // @Summary POI 전체 도메인 생성 내부 메서드
 func createPoiDomain(cfg *setting.Configuration, client *elasticsearch.Client) v1.PoiController {
+	modelServer := infrastructure.NewModelServerCaller()
 	repository := repository.NewPoiRepository(client)
-	service := service.NewSearchService(repository)
+	service := service.NewSearchService(repository, modelServer)
 	poiRouter := v1.NewPoiRouter(service, cfg)
 	return poiRouter
 }

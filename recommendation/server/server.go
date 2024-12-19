@@ -38,7 +38,6 @@ func NewServer(cfg *setting.Configuration, client *elasticsearch.Client) *Server
 	}
 
 	api.SetRouters(r, cfg, client)
-
 	// swagger middleware
 
 	return s

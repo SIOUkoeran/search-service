@@ -18,7 +18,7 @@ var (
 
 type (
 	PoiRepository interface {
-		SearchPoiByTitle(c context.Context, title string, indexName string) []dto.PoiEntity
+		SearchPoiByTitle(c context.Context, titleVector []float64, indexName string) []dto.PoiEntity
 	}
 	poiRepository struct {
 		client *elasticsearch.Client
@@ -34,14 +34,23 @@ func NewPoiRepository(client *elasticsearch.Client) PoiRepository {
 	return poiRepositoryInstance
 }
 
-func (p poiRepository) SearchPoiByTitle(c context.Context, title string, indexName string) []dto.PoiEntity {
+func (p poiRepository) SearchPoiByTitle(c context.Context, titleVector []float64, indexName string) []dto.PoiEntity {
 	query := fmt.Sprintf(`{
-			"query": {
-				"match" : {
-					"title": "%s"
-				}
-			}
-		}`, title)
+    "_source" : ["title", "address", "location"],
+    "query": {
+        "script_score": {
+            "query": {
+                "match_all": {}
+            },
+            "script": {
+                "source": "cosineSimilarity(params.query_vector, 'title_vector') + cosineSimilarity(params.query_vector, 'address_vector')",
+                "params": {
+                    "query_vector": %s
+                }
+            }
+        }
+    }
+}`, marshalJson(titleVector))
 	res, err := poiRepositoryInstance.client.Search(
 		poiRepositoryInstance.client.Search.WithContext(c),
 		poiRepositoryInstance.client.Search.WithBody(bytes.NewReader([]byte(query))),

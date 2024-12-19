@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"recommendation/dto"
+	"recommendation/infrastructure"
 	"recommendation/repository"
 	"sync"
 )
@@ -18,7 +19,8 @@ type (
 	}
 
 	searchService struct {
-		repository repository.PoiRepository
+		repository      repository.PoiRepository
+		embeddingServer infrastructure.ModelServiceCaller
 	}
 )
 
@@ -26,10 +28,11 @@ type (
 *
 SearachService 생성 메서드
 */
-func NewSearchService(repository repository.PoiRepository) SearchService {
+func NewSearchService(repository repository.PoiRepository, embeddingServer infrastructure.ModelServiceCaller) SearchService {
 	searchServiceInit.Do(func() {
 		searchServiceInstance = &searchService{
-			repository: repository,
+			repository:      repository,
+			embeddingServer: embeddingServer,
 		}
 	})
 	return searchServiceInstance
@@ -39,5 +42,13 @@ func NewSearchService(repository repository.PoiRepository) SearchService {
 *
  */
 func (s *searchService) SearchTitle(c context.Context, title string) []dto.PoiEntity {
-	return s.repository.SearchPoiByTitle(c, title, "test_poi")
+	embedResponse := s.getVector(c, title)
+	return s.repository.SearchPoiByTitle(c, embedResponse.Vector, "vector_poi")
+}
+
+func (s *searchService) getVector(c context.Context, title string) infrastructure.ResponseEmbedQuery {
+	return s.embeddingServer.CallEmbedQuery(
+		&infrastructure.RequestEmbedQuery{
+			Query: title,
+		})
 }
