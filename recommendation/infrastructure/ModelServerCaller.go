@@ -23,14 +23,6 @@ type (
 	}
 )
 
-type ResponseEmbedQuery struct {
-	Vector []float64 `json:"vector"`
-}
-
-type RequestEmbedQuery struct {
-	Query string `json:"query"`
-}
-
 func NewModelServerCaller() ModelServiceCaller {
 	ModelServerCallerInit.Do(func() {
 		modelServerCallerInstance = &modelServiceCaller{}
