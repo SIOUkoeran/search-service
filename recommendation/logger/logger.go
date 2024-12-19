@@ -1,21 +1,17 @@
 package logger
 
 import (
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/natefinch/lumberjack.v2"
+	"os"
+	"time"
 )
 
 var logger *lumberjack.Logger
 
-func SetupLogger(filename string, maxsize int, maxbackup int, compress bool, level string) {
-	logger := &lumberjack.Logger{
-		Filename:   filename,
-		MaxSize:    maxsize, // megabytes
-		MaxBackups: maxbackup,
-		// MaxAge: 28, //days
-		Compress: compress, // disabled by default
-	}
+func SetupLogger(filename string, maxsize int, maxbackup int, compress bool, level string, client *elasticsearch.Client) {
 	lvl, err := log.ParseLevel(level)
 	if err != nil {
 		log.SetLevel(lvl)
@@ -24,7 +20,12 @@ func SetupLogger(filename string, maxsize int, maxbackup int, compress bool, lev
 	}
 
 	// use lumberjack to write to implement rotation.
-	log.SetOutput(logger)
+	log.SetFormatter(&log.JSONFormatter{})
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.InfoLevel)
+
+	// use elasticsearch hooking
+	log.AddHook(NewElasticsearchHook(client, "log"))
 }
 
 func Close() {
@@ -40,4 +41,28 @@ func WithTrace(ctx *gin.Context) *log.Entry {
 		fields["span_id"] = ctx.GetString("X-Span-ID")
 	}
 	return log.WithFields(fields)
+}
+
+func SetLoggerHooking(r *gin.Engine) {
+	r.Use(func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+		latency := time.Since(start)
+		status := c.Writer.Status()
+
+		log.WithFields(log.Fields{
+			"method":  c.Request.Method,
+			"path":    c.Request.URL.Path,
+			"status":  status,
+			"latency": latency,
+		}).Info("request completed")
+
+		// Add trace and span IDs if available
+		if traceEntry := WithTrace(c); traceEntry != nil {
+			for k, v := range traceEntry.Data {
+				traceEntry = traceEntry.WithField(k, v)
+			}
+		}
+
+	})
 }

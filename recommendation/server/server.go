@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"recommendation/api"
+	"recommendation/logger"
 	"recommendation/setting"
 )
 
@@ -38,6 +39,10 @@ func NewServer(cfg *setting.Configuration, client *elasticsearch.Client) *Server
 	}
 
 	api.SetRouters(r, cfg, client)
+
+	// hooking middleware
+	logger.SetLoggerHooking(r)
+
 	// swagger middleware
 
 	return s

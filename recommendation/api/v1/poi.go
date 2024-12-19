@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"recommendation/domain"
 	"recommendation/dto"
+	"recommendation/logger"
 	"recommendation/service"
 	"recommendation/setting"
 	"sync"
@@ -37,6 +38,7 @@ func (p poiController) SearchPoi(ctx *gin.Context) {
 		return
 	}
 	req := ctx.Request.Context()
+	logger.WithTrace(ctx).Info("request In : ", searchRequest)
 	response := p.searchService.SearchTitle(req, searchRequest.Title)
 	if len(response) == 0 {
 		res := domain.BuildResponseSuccess("success", response)

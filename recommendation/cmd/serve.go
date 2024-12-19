@@ -29,18 +29,18 @@ var rootCmd = &cobra.Command{
 
 		gin.SetMode(config.Server.RunMode)
 
-		// init logger
-		logger.SetupLogger(
-			filepath.Join(config.Log.LogSavePath, config.Log.LogFileName),
-			config.Log.MaxSize, config.Log.MaxBackups, config.Log.Compress,
-			config.Log.Level)
-
 		// init db
 		engine, err := dbInit(&config.Database)
 		if err != nil {
 			log.Error("init db failed.", err)
 			return
 		}
+
+		// init logger
+		logger.SetupLogger(
+			filepath.Join(config.Log.LogSavePath, config.Log.LogFileName),
+			config.Log.MaxSize, config.Log.MaxBackups, config.Log.Compress,
+			config.Log.Level, engine)
 
 		// start http server
 		svr := server.NewServer(&config, engine)
